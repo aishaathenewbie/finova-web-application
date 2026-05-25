@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Finova — Invoice & Receipt</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#009A49;--green-light:#E6F7EE;--green-mid:#00B857;--green-dark:#007A3A;
+  --bg:#F7F9FC;--white:#fff;--border:#E2E8F0;--text:#1A2332;--muted:#64748B;
+  --danger:#DC2626;--danger-bg:#FEE2E2;
+  --radius:10px;--shadow:0 1px 4px rgba(0,0,0,0.08);
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+*:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+button{cursor:pointer;font-family:inherit;font-size:13px;border:none;border-radius:6px;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font-family:inherit;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:8px 10px;width:100%;outline:none;background:var(--white);color:var(--text);transition:border .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,154,73,.1)}
+input::placeholder{color:#94A3B8}
+.btn-primary{background:var(--green);color:#fff;padding:8px 16px;font-weight:500}
+.btn-primary:hover{background:var(--green-dark)}
+.btn-primary:active{transform:scale(.98)}
+.btn-outline{background:#fff;color:var(--green);border:1px solid var(--green);padding:7px 14px;font-weight:500}
+.btn-outline:hover{background:var(--green-light)}
+.btn-ghost{background:transparent;color:var(--muted);padding:6px 10px;border:none}
+.btn-ghost:hover{background:#F1F5F9;color:var(--text)}
+.btn-danger-ghost{background:transparent;color:var(--danger);padding:6px 8px}
+.btn-danger-ghost:hover{background:var(--danger-bg)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.badge-draft{background:#F1F5F9;color:#64748B}
+.badge-pending{background:#FEF9C3;color:#854D0E}
+.badge-paid{background:#DCFCE7;color:#166534}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:#FAFBFC;white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFBFC}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);opacity:.08;width:44px;height:44px}
+.stat-label{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.stat-value{font-size:24px;font-weight:700;color:var(--text);letter-spacing:-.5px}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+#app{display:flex;min-height:100vh}
+.sidebar{width:216px;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:20}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--green);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-text{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:var(--muted);font-weight:400;display:block;margin-top:-1px}
+.nav-section{padding:16px 10px 8px;flex:1;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;color:#CBD5E1;text-transform:uppercase;letter-spacing:.8px;padding:0 8px;margin-bottom:6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;transition:all .12s;margin-bottom:2px;position:relative}
+.nav-item:hover{background:#F8FAFC;color:var(--text)}
+.nav-item.active{background:var(--green-light);color:var(--green)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--green);border-radius:0 3px 3px 0}
+.nav-item svg{width:17px;height:17px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--green-light);color:var(--green);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px}
+.sidebar-footer{padding:10px;border-top:1px solid var(--border)}
+.main{flex:1;margin-left:216px;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-title{font-size:15px;font-weight:600;color:var(--text)}
+.breadcrumb{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.breadcrumb-sep{color:#CBD5E1}
+.user-pill{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:background .12s}
+.user-pill:hover{background:#F8FAFC}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.page-content{padding:28px;flex:1}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px}
+.page-title-wrap .page-title{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.page-title-wrap .page-desc{font-size:13px;color:var(--muted);margin-top:3px}
+.btn-group{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.filter-bar{display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+.filter-tab{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--muted);transition:all .12s}
+.filter-tab:hover{background:#F8FAFC;color:var(--text)}
+.filter-tab.active{background:var(--green);color:#fff;border-color:var(--green)}
+.search-wrap{margin-left:auto;position:relative}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--muted)}
+.search-wrap input{padding-left:32px;width:220px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.form-group.full{grid-column:1/-1}
+.items-grid-header{display:grid;grid-template-columns:1fr 70px 90px 90px 36px;gap:8px;padding:0 2px;margin-bottom:6px}
+.items-grid-header span{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.item-row{display:grid;grid-template-columns:1fr 70px 90px 90px 36px;gap:8px;align-items:center;margin-bottom:8px}
+.item-row input{font-size:12px;padding:7px 8px}
+.totals-box{background:#F8FAFB;border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-top:16px}
+.totals-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--muted)}
+.totals-final{display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding:10px 0 0;margin-top:6px;border-top:1.5px solid var(--border);color:var(--text)}
+.empty-state{padding:60px 24px;text-align:center}
+.empty-icon{width:52px;height:52px;background:var(--green-light);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.empty-icon svg{width:24px;height:24px;color:var(--green)}
+.empty-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.empty-desc{font-size:13px;color:var(--muted);margin-bottom:18px}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);animation:fadeIn .15s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--white);border-radius:14px;width:520px;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.18);animation:slideUp .18s ease}
+@keyframes slideUp{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 0}
+.modal-title{font-size:16px;font-weight:700}
+.modal-body{padding:20px 24px 24px}
+.close-btn{width:28px;height:28px;border-radius:6px;border:none;background:transparent;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.close-btn:hover{background:#F1F5F9;color:var(--text)}
+
+/* Receipt styles */
+.receipt-wrap{background:#fff;border-radius:10px;border:1px solid var(--border);padding:28px}
+.receipt-brand{display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:6px}
+.receipt-title{text-align:center;font-size:22px;font-weight:800;letter-spacing:1px;color:var(--text);margin-bottom:4px}
+.receipt-meta{text-align:center;font-size:12px;color:var(--muted)}
+.receipt-divider{border:none;border-top:2px dashed var(--border);margin:18px 0}
+.receipt-section-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.receipt-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px}
+.receipt-total-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;margin-top:8px;border-top:2px solid var(--text);font-size:16px;font-weight:800}
+.receipt-paid-stamp{background:var(--green-light);border:2px solid var(--green);color:var(--green);text-align:center;padding:10px;border-radius:8px;font-weight:800;font-size:14px;letter-spacing:2px;margin-top:18px}
+.receipt-footer{text-align:center;font-size:11px;color:var(--muted);margin-top:16px}
+
+/* Auth */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#F0FDF7 0%,#F7F9FC 50%,#EFF6FF 100%)}
+.auth-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:40px;width:380px;box-shadow:0 8px 32px rgba(0,0,0,.08)}
+.auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:28px}
+.auth-logo-icon{width:40px;height:40px;background:var(--green);border-radius:12px;display:flex;align-items:center;justify-content:center}
+.auth-heading{font-size:22px;font-weight:700;text-align:center;margin-bottom:4px;letter-spacing:-.4px}
+.auth-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:24px}
+.tab-bar{display:flex;background:#F8FAFC;border-radius:8px;padding:3px;margin-bottom:22px}
+.tab{flex:1;text-align:center;padding:7px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:6px;transition:all .15s;border:none;background:transparent}
+.tab.active{background:#fff;color:var(--green);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.form-gap{margin-bottom:12px}
+.form-label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;display:block}
+.err{color:#DC2626;font-size:12px;margin-bottom:10px;padding:8px 10px;background:#FEF2F2;border-radius:6px;display:none}
+.divider-text{text-align:center;font-size:12px;color:#CBD5E1;margin:18px 0;position:relative}
+.divider-text::before,.divider-text::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:var(--border)}
+.divider-text::before{left:0}.divider-text::after{right:0}
+.inline-badge{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600}
+.amount-cell{font-weight:600;font-variant-numeric:tabular-nums}
+.client-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.action-cell{display:flex;gap:4px;align-items:center}
+@media print{
+  .sidebar,.topbar,.filter-bar,.page-header,.modal-overlay .close-btn,.no-print{display:none!important}
+  .modal{box-shadow:none;border:none;width:100%;max-height:none}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const COLORS=['#7C3AED','#0369A1','#B45309','#0F766E','#9D174D','#1D4ED8','#047857'];
+const getColor=name=>COLORS[Math.abs(name.split('').reduce((a,c)=>a+c.charCodeAt(0),0))%COLORS.length];
+
+// --- STATE ---
+let S={
+  user:null,view:'login',modal:null,filterStatus:'all',searchQ:'',
+  invoices:[
+    {id:'INV-001',client:'Acme Corp',email:'billing@acme.com',date:'2025-05-01',due:'2025-05-15',items:[{desc:'Web Design',qty:1,rate:1200,amount:1200},{desc:'SEO Setup',qty:1,rate:400,amount:400}],total:1760,status:'paid',notes:'Thank you!'},
+    {id:'INV-002',client:'TechStart Ltd',email:'finance@techstart.io',date:'2025-05-10',due:'2025-05-24',items:[{desc:'App Development',qty:40,rate:75,amount:3000}],total:3300,status:'pending',notes:'Net 14'},
+    {id:'INV-003',client:'Nova Agency',email:'ap@novaagency.com',date:'2025-05-18',due:'2025-06-01',items:[{desc:'Brand Strategy',qty:1,rate:2500,amount:2500},{desc:'Logo Design',qty:1,rate:800,amount:800}],total:3630,status:'draft',notes:''},
+    {id:'INV-004',client:'Acme Corp',email:'billing@acme.com',date:'2025-04-15',due:'2025-04-30',items:[{desc:'Monthly Retainer',qty:1,rate:2000,amount:2000}],total:2200,status:'paid',notes:''},
+  ],
+  clients:[
+    {id:'C001',name:'Acme Corp',email:'billing@acme.com',phone:'+1 555-0101',company:'Acme Corporation'},
+    {id:'C002',name:'TechStart Ltd',email:'finance@techstart.io',phone:'+1 555-0202',company:'TechStart Limited'},
+    {id:'C003',name:'Nova Agency',email:'ap@novaagency.com',phone:'+1 555-0303',company:'Nova Creative Agency'},
+  ],
+};
+let nextNum=5;
+
+// --- DOM HELPERS ---
+const h=(tag,props={})=>{
+  const e=document.createElement(tag);
+  const{on={},cls,style:st,html,...rest}=props;
+  if(cls)e.className=cls;
+  if(st)Object.assign(e.style,st);
+  if(html)e.innerHTML=html;
+  Object.entries(rest).forEach(([k,v])=>e.setAttribute(k,v));
+  Object.entries(on).forEach(([k,v])=>e.addEventListener(k,v));
+  return e;
+};
+const t=text=>document.createTextNode(text);
+const app=(tag,props,...kids)=>{
+  const e=h(tag,props);
+  kids.flat(9).forEach(k=>k!=null&&e.appendChild(typeof k==='string'?t(k):k));
+  return e;
+};
+const R=()=>{
+  const root=document.getElementById('root');
+  root.innerHTML='';
+  root.appendChild(S.user?renderApp():renderAuth());
+  if(S.modal)root.appendChild(renderModal());
+};
+
+// --- SVG ICONS ---
+const svg=(paths,extra='')=>`<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" ${extra}>${paths}</svg>`;
+const ICONS={
+  dashboard:svg('<rect x="2" y="2" width="6" height="6" rx="1.5"/><rect x="10" y="2" width="6" height="6" rx="1.5"/><rect x="2" y="10" width="6" height="6" rx="1.5"/><rect x="10" y="10" width="6" height="6" rx="1.5"/>'),
+  invoice:svg('<path d="M4 2h10v14H4V2z"/><path d="M7 6h4M7 9h4M7 12h2"/>'),
+  clients:svg('<circle cx="9" cy="6" r="3"/><path d="M3 16a6 6 0 0112 0"/>'),
+  logout:svg('<path d="M11 9H4m3-3-3 3 3 3"/><path d="M8 3H15v12H8"/>'),
+  plus:svg('<path d="M9 3v12M3 9h12"/>'),
+  receipt:svg('<path d="M3 2h12v14l-2.5-2L10 16l-2.5-2L5 16 2.5 14 3 2z"/><path d="M6 7h6M6 10h4"/>'),
+  trash:svg('<path d="M3 5h12M8 9v4M10 9v4M5 5l1 9h6l1-9"/><path d="M7 5V3h4v2"/>'),
+  search:svg('<circle cx="8" cy="8" r="5"/><path d="M14 14l-3-3"/>'),
+  download:svg('<path d="M9 3v10M5 9l4 4 4-4"/><path d="M3 15h12"/>'),
+  check:svg('<path d="M4 9l3.5 3.5L14 6"/>'),
+  x:svg('<path d="M4 4l10 10M14 4L4 14"/>'),
+  eye:svg('<path d="M1 9s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z"/><circle cx="9" cy="9" r="2"/>'),
+  mail:svg('<rect x="2" y="4" width="14" height="11" rx="1.5"/><path d="M2 4l7 7 7-7"/>'),
+  phone:svg('<path d="M4 2h3l1 4-2.5 1.5A10 10 0 0011.5 13L13 10.5l4 1V15a1 1 0 01-1 1C6 16 2 10 2 3a1 1 0 011-1z"/>'),
+  building:svg('<rect x="3" y="3" width="12" height="13" rx="1"/><path d="M7 16V10h4v6"/><path d="M6 7h1M11 7h1M6 10h1M11 10h1"/>'),
+  chartbar:svg('<path d="M3 13V8M7 13V5M11 13V9M15 13V7"/><path d="M2 15h14"/>'),
+  arrowleft:svg('<path d="M14 9H4M8 5L4 9l4 4"/>'),
+  filter:svg('<path d="M2 4h14M5 9h8M8 14h2"/>'),
+};
+const icon=(name,extra='')=>{const s=h('span',{html:ICONS[name]||'',style:{display:'inline-flex',alignItems:'center',flexShrink:'0'}});if(extra)s.style.cssText+=';'+extra;return s;};
+
+// fmt
+const fmt$=(n)=>'$'+(+n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const initials=(name)=>name.trim().split(/\s+/).map(w=>w[0]?.toUpperCase()||'').join('').slice(0,2)||'?';
+
+// --- AUTH ---
+const renderAuth=()=>{
+  let tab='login';
+  const wrap=h('div',{cls:'auth-wrap'});
+  const card=h('div',{cls:'auth-card'});
+  const logoWrap=h('div',{cls:'auth-logo'});
+  const li=h('div',{cls:'auth-logo-icon',html:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12l2.5 2.5L16 9"/></svg>'});
+  logoWrap.appendChild(li);
+  logoWrap.appendChild(app('div',{},app('div',{style:{fontSize:'22px',fontWeight:'800',color:'var(--text)',letterSpacing:'-.4px'}},'Finova')));
+  card.appendChild(logoWrap);
+  card.appendChild(app('p',{cls:'auth-heading'},'Welcome back'));
+  const subEl=app('p',{cls:'auth-sub'},'Sign in to manage invoices & receipts');
+  card.appendChild(subEl);
+  const tabBar=h('div',{cls:'tab-bar'});
+  const tabEls={};
+  [{k:'login',v:'Sign In'},{k:'signup',v:'Create Account'}].forEach(({k,v})=>{
+    const tb=app('button',{cls:'tab'+(tab===k?' active':'')},v);
+    tb.addEventListener('click',()=>{tab=k;[tabEls.login,tabEls.signup].forEach((t,i)=>t.className='tab'+((['login','signup'][i])===k?' active':''));
+      subEl.textContent=k==='login'?'Sign in to manage invoices & receipts':'Start managing your invoices for free';
+      drawForm();});
+    tabEls[k]=tb;tabBar.appendChild(tb);
+  });
+  card.appendChild(tabBar);
+  const formWrap=h('div',{});
+  card.appendChild(formWrap);
+  const drawForm=()=>{
+    formWrap.innerHTML='';
+    const err=app('div',{cls:'err'});
+    let nameIn=null;
+    if(tab==='signup'){nameIn=h('input',{type:'text',placeholder:'Your full name'});formWrap.appendChild(app('label',{cls:'form-label'},'Full Name'));formWrap.appendChild(nameIn);formWrap.appendChild(h('div',{style:{marginBottom:'12px'}}));}
+    formWrap.appendChild(app('label',{cls:'form-label'},'Email'));
+    const emailIn=h('input',{type:'email',placeholder:'you@example.com',style:{marginBottom:'12px'}});
+    formWrap.appendChild(emailIn);
+    formWrap.appendChild(app('label',{cls:'form-label'},'Password'));
+    const passIn=h('input',{type:'password',placeholder:'••••••••',style:{marginBottom:'16px'}});
+    formWrap.appendChild(passIn);
+    formWrap.appendChild(err);
+    const btn=app('button',{cls:'btn-primary',style:{width:'100%',padding:'11px',fontSize:'14px',justifyContent:'center'}},tab==='login'?'Sign In →':'Create Account →');
+    btn.addEventListener('click',()=>{
+      if(tab==='signup'&&!nameIn?.value.trim()){err.textContent='Please enter your full name.';err.style.display='block';return;}
+      if(!emailIn.value||!passIn.value){err.textContent='Email and password are required.';err.style.display='block';return;}
+      if(passIn.value.length<6){err.textContent='Password must be at least 6 characters.';err.style.display='block';return;}
+      S.user={email:emailIn.value,name:tab==='signup'?nameIn.value:'Demo User'};S.view='dashboard';R();
+    });
+    formWrap.appendChild(btn);
+    if(tab==='login'){
+      formWrap.appendChild(app('p',{style:{textAlign:'center',fontSize:'12px',color:'var(--muted)',marginTop:'14px'}},'Demo: use any email & password (min 6 chars)'));
+    }
+  };
+  drawForm();
+  wrap.appendChild(card);
+  return wrap;
+};
+
+// --- MAIN APP ---
+const renderApp=()=>{
+  const wrap=app('div',{id:'app'},renderSidebar());
+  const main=h('div',{cls:'main'});
+  main.appendChild(renderTopbar());
+  const content=h('div',{cls:'page-content'});
+  const views={dashboard:renderDashboard,invoices:renderInvoices,'create-invoice':renderCreateInvoice,clients:renderClients};
+  content.appendChild((views[S.view]||renderDashboard)());
+  main.appendChild(content);
+  wrap.appendChild(main);
+  return wrap;
+};
+
+const renderSidebar=()=>{
+  const sb=h('div',{cls:'sidebar'});
+  const logo=h('div',{cls:'sidebar-logo'});
+  const li=h('div',{cls:'logo-icon',html:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" width="18" height="18"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12l2.5 2.5L16 9"/></svg>'});
+  logo.appendChild(li);
+  const lt=h('div',{});
+  lt.appendChild(app('span',{cls:'logo-text'},'Finova'));
+  lt.appendChild(app('span',{cls:'logo-sub'},'Invoice & Receipt'));
+  logo.appendChild(lt);
+  sb.appendChild(logo);
+  const nav=h('div',{cls:'nav-section'});
+  const pending=S.invoices.filter(i=>i.status==='pending').length;
+  [{view:'dashboard',label:'Dashboard',ico:'dashboard'},{view:'invoices',label:'Invoices',ico:'invoice',badge:pending||null},{view:'clients',label:'Clients',ico:'clients'}].forEach(({view,label,ico,badge})=>{
+    const item=h('div',{cls:'nav-item'+(S.view===view||S.view==='create-invoice'&&view==='invoices'?' active':'')});
+    item.appendChild(icon(ico));item.appendChild(app('span',{},label));
+    if(badge){item.appendChild(app('span',{cls:'nav-badge'},String(badge)));}
+    item.addEventListener('click',()=>{S.view=view;S.filterStatus='all';S.searchQ='';R();});
+    nav.appendChild(item);
+  });
+  sb.appendChild(nav);
+  const foot=h('div',{cls:'sidebar-footer'});
+  const lg=app('div',{cls:'nav-item'},icon('logout'),app('span',{},'Sign Out'));
+  lg.addEventListener('click',()=>{S.user=null;S.view='login';R();});
+  foot.appendChild(lg);sb.appendChild(foot);
+  return sb;
+};
+
+const renderTopbar=()=>{
+  const titles={dashboard:'Dashboard',invoices:'Invoices','create-invoice':'New Invoice',clients:'Clients'};
+  const tb=h('div',{cls:'topbar'});
+  const left=h('div',{cls:'topbar-left'});
+  left.appendChild(app('span',{cls:'topbar-title'},titles[S.view]||'Finova'));
+  tb.appendChild(left);
+  const pill=h('div',{cls:'user-pill'});
+  const av=h('div',{cls:'avatar'});av.textContent=initials(S.user?.name||S.user?.email||'U');
+  pill.appendChild(av);
+  pill.appendChild(app('span',{style:{fontSize:'13px',color:'var(--muted)',maxWidth:'140px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},S.user?.name||S.user?.email||''));
+  tb.appendChild(pill);
+  return tb;
+};
+
+// --- DASHBOARD ---
+const renderDashboard=()=>{
+  const pg=h('div',{});
+  const paid=S.invoices.filter(i=>i.status==='paid');
+  const pending=S.invoices.filter(i=>i.status==='pending');
+  const revenue=paid.reduce((s,i)=>s+i.total,0);
+  const outstanding=pending.reduce((s,i)=>s+i.total,0);
+  // Header
+  pg.appendChild(app('div',{cls:'page-header'},
+    app('div',{cls:'page-title-wrap'},
+      app('h1',{cls:'page-title'},'Good morning 👋'),
+      app('p',{cls:'page-desc'},"Here's what's happening with your business today.")
+    )
+  ));
+  // Stats
+  const grid=h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'14px',marginBottom:'28px'}});
+  [{label:'Total Revenue',value:fmt$(revenue),sub:paid.length+' paid invoice'+(paid.length!==1?'s':''),ico:'chartbar'},{label:'Outstanding',value:fmt$(outstanding),sub:pending.length+' awaiting payment',ico:'receipt'},{label:'All Invoices',value:S.invoices.length,sub:'Across all statuses',ico:'invoice'},{label:'Total Clients',value:S.clients.length,sub:'Active clients',ico:'clients'}].forEach(s=>{
+    const c=h('div',{cls:'stat-card'});
+    c.appendChild(app('div',{cls:'stat-label'},s.label));
+    c.appendChild(app('div',{cls:'stat-value'},String(s.value)));
+    c.appendChild(app('div',{cls:'stat-sub'},s.sub));
+    const icn=h('div',{cls:'stat-icon',html:ICONS[s.ico]||''});
+    c.appendChild(icn);
+    grid.appendChild(c);
+  });
+  pg.appendChild(grid);
+  // Two columns
+  const cols=h('div',{style:{display:'grid',gridTemplateColumns:'1.65fr 1fr',gap:'18px'}});
+  // Invoices card
+  const ic=h('div',{cls:'card'});
+  const ih=h('div',{style:{padding:'16px 18px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}});
+  ih.appendChild(app('span',{style:{fontWeight:'600',fontSize:'14px'}},'Recent Invoices'));
+  const va=app('button',{cls:'btn-ghost btn-sm'},'View all →');
+  va.addEventListener('click',()=>{S.view='invoices';R();});
+  ih.appendChild(va);ic.appendChild(ih);
+  const tbl=h('table',{});
+  tbl.appendChild(app('thead',{},app('tr',{},app('th',{},'Client'),app('th',{},'Amount'),app('th',{},'Status'),app('th',{},'Due'))));
+  const tb=h('tbody',{});
+  S.invoices.slice(0,5).forEach(inv=>{
+    const tr=h('tr',{});
+    tr.appendChild(app('td',{style:{fontWeight:'500'}},inv.client));
+    tr.appendChild(app('td',{cls:'amount-cell'},fmt$(inv.total)));
+    const std=h('td',{});std.appendChild(app('span',{cls:'badge badge-'+inv.status},inv.status));tr.appendChild(std);
+    tr.appendChild(app('td',{style:{color:'var(--muted)',fontSize:'12px'}},inv.due));
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);ic.appendChild(tbl);cols.appendChild(ic);
+  // Clients card
+  const cc=h('div',{cls:'card'});
+  const ch=h('div',{style:{padding:'16px 18px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}});
+  ch.appendChild(app('span',{style:{fontWeight:'600',fontSize:'14px'}},'Clients'));
+  const vcl=app('button',{cls:'btn-ghost btn-sm'},'View all →');
+  vcl.addEventListener('click',()=>{S.view='clients';R();});
+  ch.appendChild(vcl);cc.appendChild(ch);
+  const ctbl=h('table',{});
+  ctbl.appendChild(app('thead',{},app('tr',{},app('th',{},'Name'),app('th',{},'Revenue'))));
+  const ctb=h('tbody',{});
+  S.clients.forEach(c=>{
+    const rev=S.invoices.filter(i=>i.client===c.name&&i.status==='paid').reduce((s,i)=>s+i.total,0);
+    const tr=h('tr',{});
+    const td=h('td',{});
+    const wr=h('div',{style:{display:'flex',alignItems:'center',gap:'9px'}});
+    const av=h('div',{cls:'client-avatar',style:{background:getColor(c.name)+'22',color:getColor(c.name),width:'30px',height:'30px',fontSize:'10px'}});
+    av.textContent=initials(c.name);wr.appendChild(av);wr.appendChild(app('span',{style:{fontWeight:'500',fontSize:'13px'}},c.name));
+    td.appendChild(wr);tr.appendChild(td);
+    tr.appendChild(app('td',{cls:'amount-cell',style:{color:'var(--green)'}},rev?fmt$(rev):'—'));
+    ctb.appendChild(tr);
+  });
+  ctbl.appendChild(ctb);cc.appendChild(ctbl);cols.appendChild(cc);
+  pg.appendChild(cols);
+  return pg;
+};
+
+// --- INVOICES ---
+const renderInvoices=()=>{
+  const pg=h('div',{});
+  const header=h('div',{cls:'page-header'});
+  const tw=h('div',{cls:'page-title-wrap'});
+  tw.appendChild(app('h1',{cls:'page-title'},'Invoices'));
+  tw.appendChild(app('p',{cls:'page-desc'},'Create and manage all your invoices.'));
+  header.appendChild(tw);
+  const bg=h('div',{cls:'btn-group'});
+  const nb=app('button',{cls:'btn-primary'},icon('plus'),'New Invoice');
+  nb.addEventListener('click',()=>{S.view='create-invoice';R();});
+  bg.appendChild(nb);header.appendChild(bg);pg.appendChild(header);
+  // Filter bar
+  const fb=h('div',{cls:'filter-bar'});
+  ['all','draft','pending','paid'].forEach(f=>{
+    const counts={'all':S.invoices.length,'draft':S.invoices.filter(i=>i.status==='draft').length,'pending':S.invoices.filter(i=>i.status==='pending').length,'paid':S.invoices.filter(i=>i.status==='paid').length};
+    const ft=app('button',{cls:'filter-tab'+(S.filterStatus===f?' active':'')},f==='all'?'All':'',f!=='all'?f.charAt(0).toUpperCase()+f.slice(1):'',` (${counts[f]})`);
+    ft.addEventListener('click',()=>{S.filterStatus=f;R();});fb.appendChild(ft);
+  });
+  const sw=h('div',{cls:'search-wrap'});sw.appendChild(icon('search'));
+  const si=h('input',{type:'text',placeholder:'Search invoices...',value:S.searchQ});
+  si.addEventListener('input',e=>{S.searchQ=e.target.value;
+    filtered=getFiltered();renderTableBody(tbody,filtered);});
+  sw.appendChild(si);fb.appendChild(sw);pg.appendChild(fb);
+  let filtered=getFiltered();
+  const card=h('div',{cls:'card'});
+  const tbl=h('table',{});
+  tbl.appendChild(app('thead',{},app('tr',{},app('th',{},'Invoice'),app('th',{},'Client'),app('th',{},'Issued'),app('th',{},'Due'),app('th',{style:{textAlign:'right'}},'Amount'),app('th',{},'Status'),app('th',{},'Actions'))));
+  const tbody=h('tbody',{});
+  renderTableBody(tbody,filtered);
+  tbl.appendChild(tbody);card.appendChild(tbl);pg.appendChild(card);
+  return pg;
+};
+const getFiltered=()=>S.invoices.filter(i=>(S.filterStatus==='all'||i.status===S.filterStatus)&&(!S.searchQ||i.client.toLowerCase().includes(S.searchQ.toLowerCase())||i.id.toLowerCase().includes(S.searchQ.toLowerCase())));
+const renderTableBody=(tbody,filtered)=>{
+  tbody.innerHTML='';
+  if(!filtered.length){
+    const tr=h('tr',{});
+    const td=h('td',{colspan:'7'});
+    const es=h('div',{cls:'empty-state'});
+    const ei=h('div',{cls:'empty-icon',html:ICONS.invoice||''});
+    es.appendChild(ei);
+    es.appendChild(app('p',{cls:'empty-title'},'No invoices found'));
+    es.appendChild(app('p',{cls:'empty-desc'},S.filterStatus!=='all'?`No ${S.filterStatus} invoices yet.`:'Create your first invoice to get started.'));
+    td.appendChild(es);tr.appendChild(td);tbody.appendChild(tr);return;
+  }
+  filtered.forEach(inv=>{
+    const tr=h('tr',{});
+    tr.appendChild(app('td',{style:{fontWeight:'600',color:'var(--green)',fontSize:'13px',fontFamily:'monospace'}},inv.id));
+    const ctd=h('td',{});
+    const cwr=h('div',{style:{display:'flex',alignItems:'center',gap:'8px'}});
+    const cav=h('div',{cls:'client-avatar',style:{width:'28px',height:'28px',fontSize:'10px',background:getColor(inv.client)+'22',color:getColor(inv.client)}});
+    cav.textContent=initials(inv.client);cwr.appendChild(cav);cwr.appendChild(app('span',{style:{fontWeight:'500'}},inv.client));ctd.appendChild(cwr);tr.appendChild(ctd);
+    tr.appendChild(app('td',{style:{color:'var(--muted)',fontSize:'12px'}},inv.date));
+    tr.appendChild(app('td',{style:{color:'var(--muted)',fontSize:'12px'}},inv.due));
+    tr.appendChild(app('td',{cls:'amount-cell',style:{textAlign:'right'}},fmt$(inv.total)));
+    const std=h('td',{});std.appendChild(app('span',{cls:'badge badge-'+inv.status},inv.status));tr.appendChild(std);
+    const atd=h('td',{});
+    const aw=h('div',{cls:'action-cell'});
+    if(inv.status!=='paid'){
+      const mp=app('button',{cls:'btn-outline btn-sm'},icon('check','width:12px;height:12px'),'Mark Paid');
+      mp.addEventListener('click',()=>{inv.status='paid';R();});aw.appendChild(mp);
+    }
+    if(inv.status==='paid'){
+      const rb=app('button',{cls:'btn-ghost btn-sm'},icon('receipt','width:13px;height:13px'),'Receipt');
+      rb.addEventListener('click',()=>{S.modal={type:'receipt',invoice:inv};R();});aw.appendChild(rb);
+    }
+    const db=h('button',{cls:'btn-danger-ghost btn-sm',html:ICONS.trash});
+    db.style.cssText+='width:28px;height:28px;justify-content:center;padding:0';
+    db.addEventListener('click',()=>{if(confirm(`Delete ${inv.id}?`)){S.invoices=S.invoices.filter(i=>i.id!==inv.id);R();}});
+    aw.appendChild(db);atd.appendChild(aw);tr.appendChild(atd);
+    tbody.appendChild(tr);
+  });
+};
+
+// --- CREATE INVOICE ---
+const renderCreateInvoice=()=>{
+  const pg=h('div',{});
+  const header=h('div',{cls:'page-header'});
+  const bk=app('button',{cls:'btn-ghost'},icon('arrowleft'),'Back to Invoices');
+  bk.addEventListener('click',()=>{S.view='invoices';R();});
+  header.appendChild(bk);pg.appendChild(header);
+  const tw=h('div',{cls:'page-title-wrap',style:{marginBottom:'20px'}});
+  tw.appendChild(app('h1',{cls:'page-title'},'Create Invoice'));
+  tw.appendChild(app('p',{cls:'page-desc'},'Fill in the details below to generate a new invoice.'));
+  pg.appendChild(tw);
+  const form=h('div',{cls:'card',style:{padding:'28px'}});
+  // Client info section
+  form.appendChild(app('p',{style:{fontWeight:'600',fontSize:'13px',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'.6px',marginBottom:'14px'}},'Client Information'));
+  const g1=h('div',{cls:'form-grid'});
+  const clientIn=h('input',{type:'text',placeholder:'Client or company name'});
+  const emailIn=h('input',{type:'email',placeholder:'client@example.com'});
+  const fg=(label,inp)=>{const g=h('div',{cls:'form-group'});g.appendChild(app('label',{},label));g.appendChild(inp);return g;};
+  g1.appendChild(fg('Client Name',clientIn));g1.appendChild(fg('Client Email',emailIn));
+  form.appendChild(g1);
+  form.appendChild(h('div',{style:{height:'20px'}}));
+  form.appendChild(app('p',{style:{fontWeight:'600',fontSize:'13px',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'.6px',marginBottom:'14px'}},'Invoice Details'));
+  const g2=h('div',{cls:'form-grid'});
+  const dateIn=h('input',{type:'date',value:new Date().toISOString().slice(0,10)});
+  const dueIn=h('input',{type:'date',value:new Date(Date.now()+14*864e5).toISOString().slice(0,10)});
+  const statusIn=h('select',{});
+  [{v:'draft',l:'Draft'},{v:'pending',l:'Pending'}].forEach(({v,l})=>{const o=h('option',{value:v});o.textContent=l;statusIn.appendChild(o);});
+  const notesIn=h('textarea',{placeholder:'Payment terms, notes or references (optional)',rows:'2'});
+  g2.appendChild(fg('Issue Date',dateIn));g2.appendChild(fg('Due Date',dueIn));
+  g2.appendChild(fg('Status',statusIn));
+  const ng=h('div',{cls:'form-group full'});ng.appendChild(app('label',{},'Notes'));ng.appendChild(notesIn);g2.appendChild(ng);
+  form.appendChild(g2);
+  form.appendChild(h('div',{style:{height:'24px'}}));
+  form.appendChild(app('p',{style:{fontWeight:'600',fontSize:'13px',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'.6px',marginBottom:'12px'}},'Line Items'));
+  const ihdr=h('div',{cls:'items-grid-header'});
+  ['Description','Qty','Rate','Amount',''].forEach(l=>ihdr.appendChild(app('span',{},l)));
+  form.appendChild(ihdr);
+  let items=[{desc:'',qty:1,rate:0,amount:0}];
+  const totalsBox=h('div',{cls:'totals-box'});
+  const itemsWrap=h('div',{});
+  const recalc=()=>{
+    const sub=items.reduce((s,i)=>s+(+i.amount||0),0);
+    const tax=sub*0.1;const total=sub+tax;
+    totalsBox.innerHTML='';
+    const row=(l,v,bold)=>{const d=h('div',{cls:bold?'totals-final':'totals-row'});d.appendChild(app('span',{},l));d.appendChild(app('span',{},v));totalsBox.appendChild(d);};
+    row('Subtotal',fmt$(sub));row('Tax (10%)',fmt$(tax));row('Total',fmt$(total),true);
+  };
+  const redrawItems=()=>{
+    itemsWrap.innerHTML='';
+    items.forEach((item,idx)=>{
+      const row=h('div',{cls:'item-row'});
+      const di=h('input',{type:'text',placeholder:'Service or item description',value:item.desc});
+      di.addEventListener('input',e=>{items[idx].desc=e.target.value;});
+      const qi=h('input',{type:'number',min:'1',value:item.qty,style:{textAlign:'center'}});
+      const ri=h('input',{type:'number',min:'0',step:'0.01',value:item.rate,style:{textAlign:'right'}});
+      const ai=h('input',{type:'text',readonly:'',value:fmt$(item.qty*item.rate),style:{textAlign:'right',background:'#F8FAFB',color:'var(--muted)',cursor:'default'}});
+      const upd=()=>{items[idx].qty=+qi.value||0;items[idx].rate=+ri.value||0;items[idx].amount=items[idx].qty*items[idx].rate;ai.value=fmt$(items[idx].amount);recalc();};
+      qi.addEventListener('input',upd);ri.addEventListener('input',upd);
+      const db=h('button',{cls:'btn-danger-ghost btn-sm',html:ICONS.trash,style:{justifyContent:'center',padding:'6px',width:'30px',height:'30px'}});
+      db.addEventListener('click',()=>{if(items.length>1){items.splice(idx,1);redrawItems();recalc();}});
+      [di,qi,ri,ai,db].forEach(e=>row.appendChild(e));itemsWrap.appendChild(row);
+    });
+  };
+  redrawItems();recalc();
+  form.appendChild(itemsWrap);
+  const addBtn=app('button',{cls:'btn-ghost btn-sm',style:{marginTop:'10px'}},icon('plus','width:13px;height:13px'),'Add line item');
+  addBtn.addEventListener('click',()=>{items.push({desc:'',qty:1,rate:0,amount:0});redrawItems();recalc();});
+  form.appendChild(addBtn);form.appendChild(totalsBox);
+  const errDiv=app('div',{style:{color:'var(--danger)',fontSize:'12px',marginTop:'12px',padding:'8px 10px',background:'#FEF2F2',borderRadius:'6px',display:'none'}});
+  form.appendChild(errDiv);
+  const acts=h('div',{style:{display:'flex',gap:'10px',marginTop:'24px',justifyContent:'flex-end',borderTop:'1px solid var(--border)',paddingTop:'20px'}});
+  const cancel=app('button',{cls:'btn-outline'},'Cancel');cancel.addEventListener('click',()=>{S.view='invoices';R();});
+  const save=app('button',{cls:'btn-primary'},'Save Invoice →');
+  save.addEventListener('click',()=>{
+    if(!clientIn.value.trim()){errDiv.textContent='Client name is required.';errDiv.style.display='block';clientIn.focus();return;}
+    if(!items.some(i=>i.desc.trim())){errDiv.textContent='Add at least one line item with a description.';errDiv.style.display='block';return;}
+    const sub=items.reduce((s,i)=>s+i.amount,0);
+    const total=+(sub*1.1).toFixed(2);
+    const num=String(nextNum++).padStart(3,'0');
+    const inv={id:'INV-'+num,client:clientIn.value.trim(),email:emailIn.value,date:dateIn.value,due:dueIn.value,items:items.map(i=>({...i})),total,status:statusIn.value,notes:notesIn.value};
+    if(!S.clients.find(c=>c.name===inv.client)){
+      S.clients.push({id:'C'+Date.now(),name:inv.client,email:inv.email,phone:'—',company:inv.client});
+    }
+    S.invoices.unshift(inv);S.view='invoices';R();
+  });
+  acts.appendChild(cancel);acts.appendChild(save);form.appendChild(acts);
+  pg.appendChild(form);
+  return pg;
+};
+
+// --- CLIENTS ---
+const renderClients=()=>{
+  const pg=h('div',{});
+  const header=h('div',{cls:'page-header'});
+  const tw=h('div',{cls:'page-title-wrap'});
+  tw.appendChild(app('h1',{cls:'page-title'},'Clients'));
+  tw.appendChild(app('p',{cls:'page-desc'},'Manage your client relationships and track revenue.'));
+  header.appendChild(tw);
+  const bg=h('div',{cls:'btn-group'});
+  const ab=app('button',{cls:'btn-primary'},icon('plus'),'Add Client');
+  ab.addEventListener('click',()=>{S.modal={type:'add-client'};R();});
+  bg.appendChild(ab);header.appendChild(bg);pg.appendChild(header);
+  if(!S.clients.length){
+    const card=h('div',{cls:'card'});
+    const es=h('div',{cls:'empty-state'});
+    const ei=h('div',{cls:'empty-icon',html:ICONS.clients||''});
+    es.appendChild(ei);es.appendChild(app('p',{cls:'empty-title'},'No clients yet'));
+    es.appendChild(app('p',{cls:'empty-desc'},'Clients are added automatically when you create an invoice, or add them manually.'));
+    card.appendChild(es);pg.appendChild(card);return pg;
+  }
+  const card=h('div',{cls:'card'});
+  const tbl=h('table',{});
+  tbl.appendChild(app('thead',{},app('tr',{},app('th',{},'Client'),app('th',{},'Email'),app('th',{},'Phone'),app('th',{style:{textAlign:'center'}},'Invoices'),app('th',{style:{textAlign:'right'}},'Revenue'))));
+  const tb=h('tbody',{});
+  S.clients.forEach(c=>{
+    const cinvs=S.invoices.filter(i=>i.client===c.name);
+    const rev=cinvs.filter(i=>i.status==='paid').reduce((s,i)=>s+i.total,0);
+    const tr=h('tr',{});
+    const td1=h('td',{});
+    const wr=h('div',{style:{display:'flex',alignItems:'center',gap:'10px'}});
+    const av=h('div',{cls:'client-avatar',style:{width:'36px',height:'36px',fontSize:'12px',background:getColor(c.name)+'22',color:getColor(c.name)}});
+    av.textContent=initials(c.name);wr.appendChild(av);
+    const nc=h('div',{});
+    nc.appendChild(app('div',{style:{fontWeight:'600',fontSize:'14px'}},c.name));
+    nc.appendChild(app('div',{style:{fontSize:'12px',color:'var(--muted)'}},c.company||''));
+    wr.appendChild(nc);td1.appendChild(wr);tr.appendChild(td1);
+    const em=h('td',{style:{fontSize:'13px'}});
+    const el2=app('a',{href:'mailto:'+c.email,style:{color:'var(--muted)',textDecoration:'none'}},c.email);
+    em.appendChild(el2);tr.appendChild(em);
+    tr.appendChild(app('td',{style:{color:'var(--muted)',fontSize:'13px'}},c.phone));
+    const itd=h('td',{style:{textAlign:'center'}});
+    itd.appendChild(app('span',{style:{fontSize:'13px',color:'var(--muted)'}},String(cinvs.length)));
+    tr.appendChild(itd);
+    tr.appendChild(app('td',{cls:'amount-cell',style:{textAlign:'right',color:rev?'var(--green)':'var(--muted)'}},rev?fmt$(rev):'—'));
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);card.appendChild(tbl);pg.appendChild(card);
+  return pg;
+};
+
+// --- MODAL ---
+const renderModal=()=>{
+  const overlay=h('div',{cls:'modal-overlay'});
+  overlay.addEventListener('click',e=>{if(e.target===overlay){S.modal=null;R();}});
+  const modal=h('div',{cls:'modal'});
+  const mh=h('div',{cls:'modal-header'});
+  const cb=h('button',{cls:'close-btn',html:ICONS.x});
+  cb.addEventListener('click',()=>{S.modal=null;R();});
+
+  if(S.modal.type==='receipt'){
+    const inv=S.modal.invoice;
+    mh.appendChild(app('span',{cls:'modal-title'},'Payment Receipt'));
+    mh.appendChild(cb);modal.appendChild(mh);
+    const mb=h('div',{cls:'modal-body'});
+    const rw=h('div',{cls:'receipt-wrap'});
+    // Brand
+    const rb=h('div',{cls:'receipt-brand'});
+    const rli=h('div',{style:{width:'28px',height:'28px',background:'var(--green)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:'0'},html:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12l2.5 2.5L16 9"/></svg>'});
+    rb.appendChild(rli);rb.appendChild(app('span',{style:{fontWeight:'800',fontSize:'16px',letterSpacing:'-.3px'}},'Finova'));
+    rw.appendChild(rb);
+    rw.appendChild(app('p',{cls:'receipt-title'},'RECEIPT'));
+    rw.appendChild(app('p',{cls:'receipt-meta'},inv.id+' · '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})));
+    rw.appendChild(h('hr',{cls:'receipt-divider'}));
+    // Client
+    rw.appendChild(app('p',{cls:'receipt-section-label'},'Billed To'));
+    rw.appendChild(app('p',{style:{fontWeight:'700',fontSize:'15px'}},inv.client));
+    rw.appendChild(app('p',{style:{fontSize:'13px',color:'var(--muted)',marginBottom:'4px'}},inv.email));
+    if(inv.notes)rw.appendChild(app('p',{style:{fontSize:'12px',color:'var(--muted)',fontStyle:'italic'}},inv.notes));
+    rw.appendChild(h('hr',{cls:'receipt-divider'}));
+    rw.appendChild(app('p',{cls:'receipt-section-label'},'Services'));
+    inv.items.forEach(item=>{
+      const r=h('div',{cls:'receipt-row'});
+      const ld=h('div',{});
+      ld.appendChild(app('span',{style:{fontWeight:'500'}},item.desc));
+      if(item.qty>1)ld.appendChild(app('span',{style:{fontSize:'12px',color:'var(--muted)',marginLeft:'6px'}},'×'+item.qty+' @ '+fmt$(item.rate)));
+      r.appendChild(ld);r.appendChild(app('span',{style:{fontWeight:'600'}},fmt$(item.amount)));rw.appendChild(r);
+    });
+    rw.appendChild(h('hr',{cls:'receipt-divider'}));
+    const sub=inv.total/1.1;const tax=inv.total-sub;
+    const sr=h('div',{cls:'receipt-row',style:{color:'var(--muted)'}});
+    sr.appendChild(app('span',{},'Subtotal'));sr.appendChild(app('span',{},fmt$(sub)));rw.appendChild(sr);
+    const tr=h('div',{cls:'receipt-row',style:{color:'var(--muted)'}});
+    tr.appendChild(app('span',{},'Tax (10%)'));tr.appendChild(app('span',{},fmt$(tax)));rw.appendChild(tr);
+    const tf=h('div',{cls:'receipt-total-row'});
+    tf.appendChild(app('span',{},'Total Paid'));tf.appendChild(app('span',{style:{color:'var(--green)'}},fmt$(inv.total)));rw.appendChild(tf);
+    rw.appendChild(app('div',{cls:'receipt-paid-stamp'},'✓ PAYMENT CONFIRMED'));
+    rw.appendChild(app('p',{cls:'receipt-footer'},'Thank you for your business. This receipt was generated by Finova.'));
+    mb.appendChild(rw);
+    // Actions
+    const acts=h('div',{style:{display:'flex',gap:'10px',marginTop:'18px',justifyContent:'flex-end'},cls:'no-print'});
+    const printBtn=app('button',{cls:'btn-outline'},icon('download','width:14px;height:14px'),'Print / Save PDF');
+    printBtn.addEventListener('click',()=>window.print());
+    acts.appendChild(printBtn);
+    const closeBtn2=app('button',{cls:'btn-ghost'},'Close');
+    closeBtn2.addEventListener('click',()=>{S.modal=null;R();});
+    acts.appendChild(closeBtn2);mb.appendChild(acts);
+    modal.appendChild(mb);
+  }
+
+  else if(S.modal.type==='add-client'){
+    mh.appendChild(app('span',{cls:'modal-title'},'Add Client'));
+    mh.appendChild(cb);modal.appendChild(mh);
+    const mb=h('div',{cls:'modal-body'});
+    const g=h('div',{cls:'form-grid'});
+    const nameIn=h('input',{type:'text',placeholder:'Full name'});
+    const compIn=h('input',{type:'text',placeholder:'Company name'});
+    const emailIn=h('input',{type:'email',placeholder:'Email address'});
+    const phoneIn=h('input',{type:'tel',placeholder:'+1 234 567 8900'});
+    const fg=(label,inp)=>{const g2=h('div',{cls:'form-group'});g2.appendChild(app('label',{},label));g2.appendChild(inp);return g2;};
+    g.appendChild(fg('Full Name',nameIn));g.appendChild(fg('Company',compIn));
+    g.appendChild(fg('Email',emailIn));g.appendChild(fg('Phone',phoneIn));
+    mb.appendChild(g);
+    const err=app('div',{style:{color:'var(--danger)',fontSize:'12px',marginTop:'10px',padding:'8px 10px',background:'#FEF2F2',borderRadius:'6px',display:'none'}});
+    mb.appendChild(err);
+    const acts=h('div',{style:{display:'flex',gap:'10px',marginTop:'20px',justifyContent:'flex-end'}});
+    const cancel=app('button',{cls:'btn-ghost'},'Cancel');cancel.addEventListener('click',()=>{S.modal=null;R();});
+    const save=app('button',{cls:'btn-primary'},'Save Client');
+    save.addEventListener('click',()=>{
+      if(!nameIn.value.trim()){err.textContent='Client name is required.';err.style.display='block';return;}
+      S.clients.push({id:'C'+Date.now(),name:nameIn.value.trim(),company:compIn.value,email:emailIn.value,phone:phoneIn.value||'—'});
+      S.modal=null;R();
+    });
+    acts.appendChild(cancel);acts.appendChild(save);mb.appendChild(acts);
+    modal.appendChild(mb);
+  }
+
+  overlay.appendChild(modal);
+  return overlay;
+};
+
+R();
+</script>
+</body>
+</html>
